@@ -57,9 +57,7 @@ def parse_args():
     
     args.base_model_memory_map = parse_dict(args.base_model_memory_map)
     args.finetuned_model_memory_map = parse_dict(args.finetuned_model_memory_map)
-    args.finetuned_compressed_model_memory_map = parse_dict(
-        args.finetuned_compressed_model_memory_map
-    )
+    args.finetuned_compressed_model_memory_map = args.finetuned_compressed_model_memory_map
 
     return args
 
@@ -78,33 +76,22 @@ def parse_device(device: str):
     return f"cuda:{device}"
 
 def get_model(model_name, device, memory_map=None):
+    print(model_name, device, memory_map)
     # multi-gpu
-    if device == "auto" or isinstance(device, list):
-        
-        # if gpus are specified, distributes according to the memory map
-        if isinstance(device, list):
-            assert memory_map is not None, "memory_map must be specified when using multiple gpus"
-            config = AutoConfig.from_pretrained(model_name)
-            with init_empty_weights():
-                model = AutoModelForCausalLM.from_config(config)
-
-            device_map = infer_auto_device_map(model, memory_map, no_split_module_classes=["LlamaDecoderLayer"])
-
-        else:
-            # use all available gpus
-            device_map = "auto"
-
+    if memory_map == "auto":
         return transformers.AutoModelForCausalLM.from_pretrained(
             model_name,
             torch_dtype=torch.bfloat16,
-            device_map=device_map,
+            load_in_8bit=True,
+            device_map=memory_map
         )
     else: # single-gpu or cpu
         return transformers.AutoModelForCausalLM.from_pretrained(
             model_name,
             torch_dtype=torch.bfloat16,
-            low_cpu_mem_usage=True,
-        ).to(device)
+            load_in_8bit=True,
+            device_map=device
+        )
 
 
 def get_tokenizer(tokenizer_name):

@@ -36,7 +36,7 @@ class BinaryDiff(nn.Module):
 
         # TODO: This can be faster
         repeated_mask = self.mask.unsqueeze(0).repeat(x.size(0), 1, 1)
-        return x @ self.base + self.coeff * binary_bmm(x, repeated_mask)
+        return x @ self.base.to(torch.bfloat16) + self.coeff * binary_bmm(x, repeated_mask)
 
 def compress_diff(base_model, finetuned_model, finetuned_compressed_model):
     def compress_submodule(name, subname, module, submodule):
